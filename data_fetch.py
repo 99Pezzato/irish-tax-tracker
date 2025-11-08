@@ -2,7 +2,7 @@
 import io, requests, pandas as pd
 
 CSV_URL = (
-    "https://data.gov.ie/dataset/Monthly_Exchequer_Tax_Receipts_1984___Present/resource.csv"
+    "https://data.gov.ie/dataset/monthly-exchequer-tax-receipts-1984-present/resource.csv"
     # If that URL stops working, open https://data.gov.ie and search
     # “Monthly Exchequer Tax Receipts 1984 - Present”, copy the CSV link
 )
