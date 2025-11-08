@@ -1,0 +1,6 @@
+data:
+  csv_path: "data/sample_monthly.csv"   # Substitua pelo caminho do CSV oficial quando desejar
+estimation:
+  method: "rolling_3m"                  # monthly | rolling_3m | annualized
+  anchor: "server_start"                # server_start | month_end
+  timezone: "Europe/Dublin"

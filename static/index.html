@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Impostômetro Irlandês (Demo)</title>
+  <style>
+    html, body { font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; margin:0; padding:0; background:#0b132b; color:#e0e6f8; }
+    header { padding: 24px; text-align:center; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .counter { font-size: clamp(32px, 6vw, 64px); font-weight: 800; letter-spacing: 0.5px; background: #1c2541; padding: 16px 20px; border-radius: 12px; text-align:center; }
+    .muted { opacity: 0.8; font-size: 14px; margin-top: 8px; text-align:center; }
+    .row { display:flex; gap:16px; margin-top: 16px; flex-wrap: wrap; }
+    .card { flex: 1 1 280px; background:#1c2541; border-radius:12px; padding:16px; }
+    .label { font-size: 13px; opacity:0.75; }
+    .value { font-size: 20px; font-weight:700; }
+    a { color:#a0c3ff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🇮🇪 Impostômetro Irlandês (Demo)</h1>
+    <p>Estimativa em tempo quase real baseada em dados mensais. Substitua os dados amostrais por dados oficiais para produção.</p>
+  </header>
+  <div class="container">
+    <div class="counter" id="counter">€ 0,00</div>
+    <div class="muted" id="status">Carregando…</div>
+
+    <div class="row">
+      <div class="card">
+        <div class="label">Taxa média (€/s)</div>
+        <div class="value" id="rate">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Âncora YTD (euros)</div>
+        <div class="value" id="anchor">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Método de estimação</div>
+        <div class="value" id="method">rolling_3m</div>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:16px">
+      Fórmula: <code>Imposto(t) = YTD(t0) + r × (t − t0)</code>,
+      onde <code>r</code> é a taxa média por segundo do período recente.
+    </p>
+  </div>
+
+  <script>
+    const fmt = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+    const fmt2 = new Intl.NumberFormat('pt-PT', { maximumFractionDigits: 2 });
+
+    function start() {
+      fetch('/api/state')
+        .then(r => r.json())
+        .then(state => {
+          const anchor = state.ytd_anchor_eur || 0;
+          const rate = state.rate_per_second_eur || 0;
+          const t0 = new Date(state.anchor_time_iso).getTime();
+          const method = document.getElementById('method').textContent;
+
+          document.getElementById('rate').textContent = fmt2.format(rate) + " €/s";
+          document.getElementById('anchor').textContent = fmt.format(anchor);
+
+          function tick() {
+            const now = Date.now();
+            const elapsed = (now - t0) / 1000.0; // seconds
+            const value = anchor + rate * elapsed;
+            document.getElementById('counter').textContent = fmt.format(value);
+            document.getElementById('status').textContent = "Atualizado: " + new Date().toLocaleString('pt-PT');
+            requestAnimationFrame(tick);
+          }
+          tick();
+        })
+        .catch(err => {
+          document.getElementById('status').textContent = "Erro ao carregar: " + err;
+        });
+    }
+    start();
+  </script>
+</body>
+</html>
