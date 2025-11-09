@@ -18,7 +18,6 @@ except Exception as e:
     data_cfg, est_cfg = load_config(CONFIG_PATH)
     df = load_monthly_receipts(os.path.join(APP_DIR, data_cfg.csv_path))
 else:
-    # use default estimation config
     import yaml
     with open(CONFIG_PATH, "r") as f:
         est_cfg = yaml.safe_load(f)["estimation"]
@@ -30,11 +29,26 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 def home():
     return send_from_directory("static", "index.html")
 
-# New route: send the tax data as JSON
+# Route for full dataset as JSON
 @app.route("/data")
 def get_data():
     try:
         return jsonify(df.to_dict(orient="records"))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Route for live tax meter state
+@app.route("/api/state")
+def api_state():
+    try:
+        latest = df.iloc[-1]
+        ytd = latest.get("net_receipts_eur", 0)
+        avg_rate = ytd / (365 * 24 * 3600)
+        return jsonify({
+            "ytd": ytd,
+            "avg_rate": avg_rate,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
