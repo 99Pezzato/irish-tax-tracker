@@ -44,7 +44,7 @@ def api_state():
     try:
         latest = df.iloc[-1]
         ytd = float(latest.get("net_receipts_eur", 0))
-        avg_rate = ytd / (365 * 24 * 3600)  # euro/second
+        avg_rate = ytd / (365 * 24 * 3600)
         return jsonify({
             "ytd": ytd,
             "avg_rate": avg_rate,
@@ -53,7 +53,6 @@ def api_state():
     except Exception as e:
         print("❌ Error in /api/state:", e)
         return jsonify({"error": str(e)}), 500
-
 # --- Main entrypoint ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
