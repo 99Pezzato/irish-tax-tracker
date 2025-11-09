@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Irish Tax Meter (Demo)</title>
+  <style>
+    body {
+      background-color: #0e1628;
+      color: #dbe2f9;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      color: #fff;
+    }
+
+    .meter {
+      font-size: 5rem;
+      font-weight: bold;
+      color: #c3d9ff;
+      margin-top: 2rem;
+    }
+
+    .error {
+      color: #f77;
+      margin-top: 1rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background-color: #1a2340;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      width: 250px;
+    }
+
+    .label {
+      color: #9cb5e6;
+      font-size: 0.9rem;
+    }
+
+    .value {
+      font-size: 1.5rem;
+      color: #fff;
+      margin-top: 0.5rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🇮🇪 Irish Tax Meter (Demo)</h1>
+  <p>Near real-time estimate based on monthly data. Replace sample data with official production data.</p>
+
+  <div class="meter" id="tax-meter">€0.00</div>
+  <div class="error" id="error"></div>
+
+  <div class="stats">
+    <div class="card">
+      <div class="label">Average rate (€/s)</div>
+      <div class="value" id="rate">--</div>
+    </div>
+    <div class="card">
+      <div class="label">Anchor YTD (euros)</div>
+      <div class="value" id="ytd">--</div>
+    </div>
+    <div class="card">
+      <div class="label">Estimation method</div>
+      <div class="value">rolling_3m</div>
+    </div>
+  </div>
+
+  <footer>
+    Formula: Imposto(t) = YTD(t₀) + r × (t − t₀)
+  </footer>
+
+  <script>
+    const taxMeter = document.getElementById("tax-meter");
+    const rateElem = document.getElementById("rate");
+    const ytdElem = document.getElementById("ytd");
+    const errorElem = document.getElementById("error");
+
+    async function fetchTaxData() {
+      try {
+        const response = await fetch("/data");
+        if (!response.ok) throw new Error("Failed to fetch data: " + response.status);
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) throw new Error("No data returned");
+
+        // Fake calculation: derive a few values from the dataset
+        const latest = data[data.length - 1];
+        const ytd = latest["net_receipts_eur"] || 0;
+        const avgRate = ytd / (365 * 24 * 3600); // euros per second (approx)
+        let total = ytd;
+
+        rateElem.textContent = avgRate.toFixed(2);
+        ytdElem.textContent = ytd.toLocaleString("en-IE", { style: "currency", currency: "EUR" });
+
+        // Animate counter
+        setInterval(() => {
+          total += avgRate;
+          taxMeter.textContent = total.toLocaleString("en-IE", {
+            style: "currency",
+            currency: "EUR",
+            minimumFractionDigits: 2,
+          });
+        }, 1000);
+      } catch (err) {
+        console.error("Error loading tax data:", err);
+        errorElem.textContent = "Error loading data: " + err.message;
+      }
+    }
+
+    fetchTaxData();
+  </script>
+</body>
+</html>
