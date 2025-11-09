@@ -3,28 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IE Irish Tax Meter (Demo)</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <title>Irish Tax Meter (Demo)</title>
+  <link rel="stylesheet" href="/styles.css?v=1">
 </head>
 <body>
   <h1>🇮🇪 Irish Tax Meter (Demo)</h1>
   <p>Almost real-time estimate based on monthly figures. Swap the sample data for the official Exchequer returns.</p>
 
-  <div id="main">
-    <h2 id="total">€0.00</h2>
-    <p id="error" style="color:#ff7777"></p>
+  <h2 id="total">€0.00</h2>
+  <p id="status" style="color:#777"></p>
 
-    <div class="stats">
-      <div>
-        <label>Average rate (€ per second)</label>
-        <span id="avg_rate">—</span>
-      </div>
-      <div>
-        <label>Anchor YTD (euros)</label>
-        <span id="ytd">—</span>
-      </div>
+  <div class="stats">
+    <div>
+      <label>Average rate (€ per second)</label>
+      <span id="avg_rate">--</span>
     </div>
-
+    <div>
+      <label>Anchor YTD (euros)</label>
+      <span id="ytd">--</span>
+    </div>
     <div>
       <label>Estimation method</label>
       <span class="method">rolling_3m</span>
@@ -32,55 +29,47 @@
   </div>
 
   <p class="formula">
-    Formula: <em>Tax(t) = YTD(t₀) + r × (t − t₀)</em>, where r is the average rate per second for the latest period.
+    Formula: <em>Tax(t) = YTD(t₀) + r × (t − t₀)</em>,
+    where r is the average rate per second for the latest period.
   </p>
 
-<script>
-const fmt = new Intl.NumberFormat('en-IE', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 2
-});
-const fmt2 = new Intl.NumberFormat('en-IE', {
-  maximumFractionDigits: 6
-});
+  <script>
+    const fmt = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 
-async function start() {
-  try {
-    const res = await fetch('/api/state');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const state = await res.json();
+    async function fetchState() {
+      try {
+        const res = await fetch('/api/state');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
 
-    // Match backend JSON structure exactly
-    const ytd = parseFloat(state.ytd) || 0;
-    const rate = parseFloat(state.avg_rate) || 0;
-    const t0 = new Date(state.timestamp).getTime();
+        const ytd = Number(data.ytd) || 0;
+        const rate = Number(data.avg_rate) || 0;
+        const t0 = new Date(data.timestamp).getTime();
 
-    // Initial UI update
-    document.getElementById('ytd').textContent = fmt.format(ytd);
-    document.getElementById('avg_rate').textContent = fmt2.format(rate) + " €/s";
+        document.getElementById('ytd').textContent = fmt.format(ytd);
+        document.getElementById('avg_rate').textContent = rate.toFixed(6) + " €/s";
 
-    // Start live counter
-    function tick() {
-      const now = Date.now();
-      const elapsed = (now - t0) / 1000.0; // seconds
-      const value = ytd + rate * elapsed;
-      document.getElementById('total').textContent = fmt.format(value);
-      document.getElementById('status').textContent =
-        "Updated: " + new Date().toLocaleString('en-IE');
-      requestAnimationFrame(tick);
+        let last = Date.now();
+        let current = ytd;
+
+        function tick() {
+          const now = Date.now();
+          const elapsed = (now - last) / 1000; // seconds
+          current += rate * elapsed;
+          document.getElementById('total').textContent = fmt.format(current);
+          document.getElementById('status').textContent = "Updated: " + new Date().toLocaleString('en-IE');
+          last = now;
+          requestAnimationFrame(tick);
+        }
+        tick();
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('status').textContent = "Error fetching data: " + err;
+      }
     }
 
-    tick();
-
-  } catch (err) {
-    console.error("Fetch error:", err);
-    document.getElementById('status').textContent =
-      "Error fetching data: " + err.message;
-  }
-}
-
-start();
-</script>
+    fetchState();
+  </script>
 </body>
 </html>
