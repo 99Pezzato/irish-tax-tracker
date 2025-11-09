@@ -28,15 +28,7 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 def home():
     return send_from_directory("static", "index.html")
 
-# --- API: raw data (optional debug) ---
-@app.route("/data")
-def get_data():
-    try:
-        return jsonify(df.to_dict(orient="records"))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# --- API: summarized state for the frontend ---
+# --- API: summarized state for frontend ---
 @app.route("/api/state")
 def api_state():
     try:
@@ -52,7 +44,7 @@ def api_state():
         print("❌ Error in /api/state:", e)
         return jsonify({"error": str(e)}), 500
 
-# --- Run the app ---
+# --- Run app (Render) ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
