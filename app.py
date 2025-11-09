@@ -25,12 +25,21 @@ else:
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
+# Main webpage
 @app.route("/")
 def home():
     return send_from_directory("static", "index.html")
 
+# New route: send the tax data as JSON
+@app.route("/data")
+def get_data():
+    try:
+        return jsonify(df.to_dict(orient="records"))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Run the app (Render will call this automatically)
 if __name__ == "__main__":
-    import os
+    import yaml
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-
