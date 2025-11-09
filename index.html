@@ -4,129 +4,73 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Irish Tax Meter (Demo)</title>
-  <style>
-    body {
-      background-color: #0e1628;
-      color: #dbe2f9;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      text-align: center;
-      padding: 2rem;
-    }
-
-    h1 {
-      color: #fff;
-    }
-
-    .meter {
-      font-size: 5rem;
-      font-weight: bold;
-      color: #c3d9ff;
-      margin-top: 2rem;
-    }
-
-    .error {
-      color: #f77;
-      margin-top: 1rem;
-    }
-
-    .stats {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-
-    .card {
-      background-color: #1a2340;
-      padding: 1.5rem;
-      border-radius: 1rem;
-      width: 250px;
-    }
-
-    .label {
-      color: #9cb5e6;
-      font-size: 0.9rem;
-    }
-
-    .value {
-      font-size: 1.5rem;
-      color: #fff;
-      margin-top: 0.5rem;
-    }
-
-    footer {
-      margin-top: 3rem;
-      font-size: 0.85rem;
-      color: #94a3b8;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
-
 <body>
   <h1>🇮🇪 Irish Tax Meter (Demo)</h1>
-  <p>Near real-time estimate based on monthly data. Replace sample data with official production data.</p>
+  <p>Almost real-time estimate based on monthly figures. Swap the sample data for the official Exchequer returns.</p>
 
-  <div class="meter" id="tax-meter">€0.00</div>
-  <div class="error" id="error"></div>
+  <h2 id="total">€0.00</h2>
+  <p id="status" style="color:#777"></p>
 
   <div class="stats">
-    <div class="card">
-      <div class="label">Average rate (€/s)</div>
-      <div class="value" id="rate">--</div>
+    <div>
+      <label>Average rate (€ per second)</label>
+      <span id="avg_rate">--</span>
     </div>
-    <div class="card">
-      <div class="label">Anchor YTD (euros)</div>
-      <div class="value" id="ytd">--</div>
+    <div>
+      <label>Anchor YTD (euros)</label>
+      <span id="ytd">--</span>
     </div>
-    <div class="card">
-      <div class="label">Estimation method</div>
-      <div class="value">rolling_3m</div>
+    <div>
+      <label>Estimation method</label>
+      <span class="method">rolling_3m</span>
     </div>
   </div>
 
-  <footer>
-    Formula: Imposto(t) = YTD(t₀) + r × (t − t₀)
-  </footer>
+  <p class="formula">
+    Formula: <em>Tax(t) = YTD(t₀) + r × (t − t₀)</em>,
+    where r is the average rate per second for the latest period.
+  </p>
 
   <script>
-    const taxMeter = document.getElementById("tax-meter");
-    const rateElem = document.getElementById("rate");
-    const ytdElem = document.getElementById("ytd");
-    const errorElem = document.getElementById("error");
+    const fmt = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 
-    async function fetchTaxData() {
+    async function fetchState() {
       try {
-        const response = await fetch("/data");
-        if (!response.ok) throw new Error("Failed to fetch data: " + response.status);
-        const data = await response.json();
+        const res = await fetch('/api/state');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
 
-        if (!Array.isArray(data) || data.length === 0) throw new Error("No data returned");
+        const ytd = Number(data.ytd) || 0;
+        const rate = Number(data.avg_rate) || 0;
+        const t0 = new Date(data.timestamp).getTime();
 
-        // Fake calculation: derive a few values from the dataset
-        const latest = data[data.length - 1];
-        const ytd = latest["net_receipts_eur"] || 0;
-        const avgRate = ytd / (365 * 24 * 3600); // euros per second (approx)
-        let total = ytd;
+        document.getElementById('ytd').textContent = fmt.format(ytd);
+        document.getElementById('avg_rate').textContent = rate.toFixed(6) + " €/s";
 
-        rateElem.textContent = avgRate.toFixed(2);
-        ytdElem.textContent = ytd.toLocaleString("en-IE", { style: "currency", currency: "EUR" });
+        let last = Date.now();
+        let current = ytd;
 
-        // Animate counter
-        setInterval(() => {
-          total += avgRate;
-          taxMeter.textContent = total.toLocaleString("en-IE", {
-            style: "currency",
-            currency: "EUR",
-            minimumFractionDigits: 2,
-          });
-        }, 1000);
+        function tick() {
+          const now = Date.now();
+          const elapsed = (now - last) / 1000; // seconds
+          current += rate * elapsed;
+          document.getElementById('total').textContent = fmt.format(current);
+          document.getElementById('status').textContent = "Updated: " + new Date().toLocaleString('en-IE');
+          last = now;
+          requestAnimationFrame(tick);
+        }
+        tick();
+
       } catch (err) {
-        console.error("Error loading tax data:", err);
-        errorElem.textContent = "Error loading data: " + err.message;
+        console.error(err);
+        document.getElementById('status').textContent = "Error fetching data: " + err;
       }
     }
 
-    fetchTaxData();
+    fetchState();
   </script>
 </body>
 </html>
+

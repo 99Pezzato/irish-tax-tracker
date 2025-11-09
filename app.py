@@ -28,20 +28,27 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 def home():
     return send_from_directory("static", "index.html")
 
-# --- API: summarized state for frontend ---
+from datetime import datetime, timezone
+
 @app.route("/api/state")
 def api_state():
     try:
         latest = df.iloc[-1]
-        ytd = float(latest.get("net_receipts_eur", 0))
-        avg_rate = ytd / (365 * 24 * 3600)
+        # ytd is your year-to-date value *as of the dataset time* (in euros)
+        ytd = float(latest.get("net_receipts_eur", 0)) * 1_000_000
+
+        now = datetime.now(timezone.utc)
+        year_start = datetime(now.year, 1, 1, tzinfo=timezone.utc)
+        elapsed = (now - year_start).total_seconds()
+        avg_rate = ytd / elapsed if elapsed > 0 else 0.0   # €/s
+
         return jsonify({
             "ytd": ytd,
-            "avg_rate": avg_rate,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "avg_rate": avg_rate,          # euros per second
+            "timestamp": now.isoformat(),  # anchor time for the frontend
         })
     except Exception as e:
-        print("❌ Error in /api/state:", e)
+        print("✗ Error in /api/state:", e)
         return jsonify({"error": str(e)}), 500
 
 # --- Run app (Render) ---
