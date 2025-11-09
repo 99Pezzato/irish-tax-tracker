@@ -1,0 +1,29 @@
+body {
+  background: #0d1117;
+  color: #f0f6fc;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  padding: 2em;
+}
+
+h1 {
+  color: #58a6ff;
+}
+
+h2 {
+  font-size: 3em;
+  margin: 0.5em 0;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 2em;
+  margin-top: 1em;
+}
+
+.stats div {
+  background: #161b22;
+  padding: 1em 2em;
+  border-radius: 12px;
+}
