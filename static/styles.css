@@ -24,11 +24,7 @@ h1 {
 
 /* Stats container */
 .stats {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin: 25px auto;
-    flex-wrap: wrap;
+    display: none;
 }
 
 /* Individual stat boxes */
